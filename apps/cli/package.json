@@ -1,0 +1,33 @@
+{
+  "name": "stint",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "stint": "./bin/stint"
+  },
+  "scripts": {
+    "dev": "bun src/index.ts --profile development",
+    "prod": "bun src/index.ts --profile production",
+    "build": "bun build src/index.ts --target bun --outfile dist/index.js",
+    "lint": "oxlint .",
+    "lint:fix": "oxlint . --fix",
+    "format": "oxfmt .",
+    "format:check": "oxfmt --check .",
+    "check-types": "tsc --project tsconfig.json",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "@clack/prompts": "catalog:",
+    "cli-table3": "^0.6.5",
+    "env-paths": "catalog:",
+    "luxon": "catalog:",
+    "yargs": "catalog:"
+  },
+  "devDependencies": {
+    "@repo/typescript-config": "workspace:*",
+    "@types/luxon": "catalog:",
+    "@types/node": "catalog:",
+    "@types/yargs": "catalog:"
+  }
+}

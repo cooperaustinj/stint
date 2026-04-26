@@ -1,0 +1,7 @@
+{
+  "extends": "@repo/typescript-config/bun-cli.json",
+  "compilerOptions": {
+    "baseUrl": "."
+  },
+  "include": ["src", "bin", "tests"]
+}

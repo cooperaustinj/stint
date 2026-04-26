@@ -1,0 +1,5 @@
+#!/usr/bin/env bun
+if (!process.argv.includes('--profile') && !process.argv.some(arg => arg.startsWith('--profile='))) {
+  process.argv.splice(2, 0, '--profile', 'production')
+}
+import '../src/index.ts'

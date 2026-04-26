@@ -1,0 +1,15 @@
+node_modules/
+.turbo/
+.DS_Store
+*.log
+.stint/
+apps/cli/.stint/
+apps/cli/dist/
+
+.env
+.env.*
+!.env.example
+
+*.db
+*.sqlite
+*.sqlite3

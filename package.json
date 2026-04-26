@@ -1,0 +1,46 @@
+{
+  "name": "stint-workspace",
+  "private": true,
+  "scripts": {
+    "stint": "bun run --filter stint prod --",
+    "dev": "bun run --filter stint dev --",
+    "prod": "bun run --filter stint prod --",
+    "link": "bun link --cwd apps/cli",
+    "dev:all": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "lint:fix": "turbo run lint:fix",
+    "format": "oxfmt . && turbo run format",
+    "format:check": "oxfmt --check . && turbo run format:check",
+    "check-types": "turbo run check-types",
+    "test": "turbo run test"
+  },
+  "workspaces": {
+    "catalog": {
+      "@clack/prompts": "^0.11.0",
+      "@types/bun": "^1.3.6",
+      "@types/luxon": "^3.7.1",
+      "@types/node": "^24.9.1",
+      "@types/yargs": "^17.0.33",
+      "env-paths": "^3.0.0",
+      "luxon": "^3.7.2",
+      "oxfmt": "^0.24.0",
+      "oxlint": "^1.39.0",
+      "turbo": "^2.7.4",
+      "typescript": "^5.9.3",
+      "yargs": "^18.0.0"
+    },
+    "packages": [
+      "apps/*",
+      "packages/*"
+    ]
+  },
+  "devDependencies": {
+    "@types/bun": "catalog:",
+    "oxfmt": "catalog:",
+    "oxlint": "catalog:",
+    "turbo": "catalog:",
+    "typescript": "catalog:"
+  },
+  "packageManager": "bun@1.3.6"
+}
