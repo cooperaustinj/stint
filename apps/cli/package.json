@@ -29,5 +29,6 @@
     "@types/luxon": "catalog:",
     "@types/node": "catalog:",
     "@types/yargs": "catalog:"
-  }
+  },
+  "license": "AGPL-3.0-only"
 }

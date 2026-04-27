@@ -2,7 +2,7 @@ import { intro, isCancel, outro, select, text } from '@clack/prompts'
 import { hideBin } from 'yargs/helpers'
 import yargs from 'yargs'
 import { join } from 'node:path'
-import { completionScript } from './completion/scripts'
+import { completionScript, installCompletionScript } from './completion/scripts'
 import { openDatabase } from './db/connection'
 import { applyPendingMigrations, getAppliedMigrations, getMigrationFiles } from './db/migrations'
 import {
@@ -745,10 +745,31 @@ async function main() {
 
   cli.command(
     'completion <shell>',
-    'Generate shell completion script',
-    (y: any) => y.positional('shell', { choices: ['fish', 'bash', 'zsh'] as const }),
+    'Generate or install shell completion script',
+    (y: any) =>
+      y
+        .positional('shell', { choices: ['fish', 'bash', 'zsh'] as const })
+        .option('install', { type: 'boolean', default: false, describe: 'Install completion file to default shell path' })
+        .option('path', { type: 'string', describe: 'Custom file path for completion install' }),
     (argv: any) => {
-      console.log(completionScript(argv.shell as Shell))
+      const shell = argv.shell as Shell
+      const script = completionScript(shell)
+      if (!argv.install) {
+        console.log(script)
+        return
+      }
+
+      const installedPath = installCompletionScript(shell, script, { path: argv.path })
+      console.log(`Installed ${shell} completion to ${installedPath}`)
+      if (shell === 'fish') {
+        console.log('Fish will load this automatically in new shells.')
+        return
+      }
+      if (shell === 'bash') {
+        console.log('Load it with: source ~/.local/share/bash-completion/completions/stint')
+        return
+      }
+      console.log('Ensure this directory is in your fpath, then run: autoload -Uz compinit && compinit')
     },
   )
 

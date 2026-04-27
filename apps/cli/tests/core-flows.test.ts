@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { DateTime } from 'luxon'
-import { completionScript } from '../src/completion/scripts'
+import { completionScript, defaultCompletionInstallPath, installCompletionScript } from '../src/completion/scripts'
 import { applyPendingMigrations, getAppliedMigrations } from '../src/db/migrations'
 import {
   archiveClient,
@@ -728,7 +728,8 @@ describe('migration and completion', () => {
   test('completionScript: fish output includes top-level command suggestions', () => {
     const out = completionScript('fish')
     expect(out).toContain('complete -c stint')
-    expect(out).toContain('add edit report list client project delete restore completion migrate config')
+    expect(out).toContain('add edit delete restore report list track client project completion migrate config')
+    expect(out).toContain("__fish_seen_subcommand_from track")
   })
 
   test('completionScript: bash and zsh outputs are non-empty and command-scoped', () => {
@@ -738,5 +739,25 @@ describe('migration and completion', () => {
     expect(zsh.length).toBeGreaterThan(10)
     expect(bash).toContain('stint')
     expect(zsh).toContain('#compdef stint')
+  })
+
+  test('defaultCompletionInstallPath: fish uses XDG config dir when provided', () => {
+    const path = defaultCompletionInstallPath('fish', {
+      HOME: '/tmp/home',
+      XDG_CONFIG_HOME: '/tmp/xdg-config',
+    } as NodeJS.ProcessEnv)
+    expect(path).toBe('/tmp/xdg-config/fish/completions/stint.fish')
+  })
+
+  test('installCompletionScript: writes completion file to path', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'stint-completion-'))
+    openDirs.push(dir)
+    const path = join(dir, 'stint.fish')
+
+    const installedPath = installCompletionScript('fish', completionScript('fish'), { path })
+    expect(installedPath).toBe(path)
+
+    const content = await Bun.file(path).text()
+    expect(content).toContain('complete -c stint')
   })
 })

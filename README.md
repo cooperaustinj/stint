@@ -1,92 +1,274 @@
 # Stint
 
-Simple CLI time tracking app built with Bun + TypeScript.
+Stint is a CLI-first time tracker focused on fast entry capture.
 
-## Stack
+It is designed for simple, high-frequency workflows:
 
-- Turborepo workspace
-- Bun runtime/package manager
-- `yargs` for CLI commands
-- `@clack/prompts` for interactive flows
-- `bun:sqlite` with SQL file migrations
-- `oxlint` + `oxfmt`
+- Log a duration quickly (`2h`, `15m`, `1h30m`)
+- Optionally log start/end ranges (`3:13am - 4pm`)
+- Assign work to `client:project`
+- Start/stop active tracking with a single in-progress timer
+- Report recent work with practical filters
 
 ## Quick Start
 
+### 1. Install dependencies
+
 ```sh
 bun install
-bun run check-types
-bun run test
 ```
 
-## Dev Data Mode
+### 2. Install `stint` locally on your machine
 
-Use repo-local data/config while developing:
-
-```sh
-bun run dev -- config
-```
-
-This writes to:
-
-- `.stint/dev/stint.db`
-- `.stint/dev/config.json`
-
-For production-style runs, use:
-
-```sh
-bun run prod -- config
-```
-
-or the linked global command `stint ...`, which always uses production profile by default.
-
-To force an isolated SQLite file (useful for smoke checks):
-
-```sh
-bun run dev -- --db /tmp/stint-smoke.db config
-```
-
-You can also use `STINT_DB_PATH=/tmp/stint-smoke.db`.
-
-## Local Global Install (No npm publish)
-
-From repo root:
+From the repo root:
 
 ```sh
 bun run link
 ```
 
-Then run production-style:
+This registers the CLI command so you can run `stint` directly.
+
+### 3. Verify install
 
 ```sh
 stint --help
 ```
 
-## Core Commands
+### 4. Create your first client/project
 
 ```sh
-bun run dev -- client add client_key "Client Name"
-bun run dev -- project add project_key "Project Name" --client client_key
-bun run dev -- add client_key:project_key 2h "work note"
-bun run dev -- track start client_key:project_key "starting work"
-bun run dev -- track status
-bun run dev -- track stop
-bun run dev -- report
+stint client add acme "Acme"
+stint project add backend "Backend" --client acme
 ```
 
-Interactive add:
+### 5. Add an entry
 
 ```sh
-bun run dev -- add --interactive
+stint add acme:backend 2h "worked on API"
 ```
 
-Generate completions:
+### 6. View recent entries
+
+```sh
+stint report
+```
+
+## Command Reference
+
+Use `stint <command> --help` for full flags and examples.
+
+### Entries
+
+Add an entry:
+
+```sh
+stint add <client:project> <duration> <note...>
+```
+
+Examples:
+
+```sh
+stint add acme:backend 2h "worked on API"
+stint add acme:backend 1h30m "code review"
+stint add acme:backend --start 9:15am --end 11am "incident follow-up"
+stint add acme:backend 2h "backfill" --date 2026-04-20
+stint add --interactive
+```
+
+Edit/delete/restore entries:
+
+```sh
+stint edit <id> [--date YYYY-MM-DD] [--duration ...] [--start ... --end ...] [--note-text ...]
+stint delete <id>
+stint restore <id>
+```
+
+### Tracking (Start/Stop)
+
+Start an active timer:
+
+```sh
+stint track start <client:project> <note...>
+```
+
+Check status:
+
+```sh
+stint track status
+```
+
+Stop timer:
+
+```sh
+stint track stop
+```
+
+Non-interactive stop with overrides:
+
+```sh
+stint track stop --non-interactive --duration-override 1h30m --note-text "final note"
+```
+
+### Reporting
+
+Default report:
+
+```sh
+stint report
+```
+
+Filters:
+
+```sh
+stint report --last 25
+stint report --from 2026-04-01 --to 2026-04-30
+stint report --client acme --project backend
+```
+
+Soft-deleted entries:
+
+```sh
+stint report --include-deleted
+stint report --only-deleted
+```
+
+Optional technical columns:
+
+```sh
+stint report --show-deleted --show-overlap
+```
+
+`list` is an alias for `report`.
+
+### Clients and Projects
+
+Clients:
+
+```sh
+stint client add acme "Acme"
+stint client list
+stint client edit acme "Acme Corp"
+stint client archive acme
+```
+
+Projects:
+
+```sh
+stint project add backend "Backend" --client acme
+stint project list
+stint project edit backend "Backend API"
+stint project archive backend
+```
+
+### Configuration
+
+Show active profile, resolved DB/config paths, and defaults:
 
 ```sh
 stint config
-stint config set-defaults --client client_key --project project_key --report-last 20
-stint config reset-defaults --yes
-stint completion fish
-stint completion bash
-stint completion zsh
 ```
+
+Set defaults:
+
+```sh
+stint config set-defaults --client acme --project backend --report-last 20
+```
+
+Reset defaults:
+
+```sh
+stint config reset-defaults --yes
+```
+
+### Migrations
+
+Migrations auto-run on startup before command execution.
+
+Manual commands:
+
+```sh
+stint migrate status
+stint migrate up
+```
+
+### Shell Completions
+
+Print completion scripts:
+
+```sh
+stint completion fish
+stint completion zsh
+stint completion bash
+```
+
+Install completion files directly:
+
+```sh
+stint completion fish --install
+stint completion zsh --install
+stint completion bash --install
+```
+
+Install to a custom path:
+
+```sh
+stint completion fish --install --path ~/.config/fish/completions/stint.fish
+```
+
+## Local Development
+
+Use these commands when developing the project itself.
+
+### Run in development profile
+
+```sh
+bun run dev -- config
+```
+
+Development profile stores data in repo-local paths:
+
+- `.stint/dev/stint.db`
+- `.stint/dev/config.json`
+
+### Run in production profile from source
+
+```sh
+bun run prod -- config
+```
+
+Production profile uses OS-specific app data/config directories.
+
+### Use an explicit SQLite file during testing/smoke runs
+
+```sh
+stint --profile production --db /tmp/stint-smoke.db report
+```
+
+or:
+
+```sh
+STINT_DB_PATH=/tmp/stint-smoke.db stint report
+```
+
+### Workspace tooling
+
+```sh
+bun run check-types
+bun run test
+bun run lint
+bun run format:check
+```
+
+## Data Model Notes
+
+- `entries` supports completed and active tracking rows.
+- Effective duration is persisted in `duration_minutes`.
+- Tracking rows keep:
+  - `calculated_duration_minutes`
+  - optional `duration_override_minutes`
+- Only one active tracking row is allowed at a time (enforced in SQLite).
+
+## License
+
+This project is licensed under the GNU Affero General Public License v3.0.
+See [LICENSE](./LICENSE).
