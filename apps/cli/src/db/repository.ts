@@ -372,16 +372,19 @@ export function queryEntries(
   const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : ''
 
   const sql = `
-    SELECT e.id, e.entry_date, e.start_at_utc, e.end_at_utc, e.duration_minutes,
-           e.calculated_duration_minutes, e.duration_override_minutes, e.status,
-           e.note, e.overlap_warning, e.deleted_at,
-           c.key as client_key, p.key as project_key, c.name as client_name, p.name as project_name
-    FROM entries e
-    JOIN clients c ON c.id = e.client_id
-    JOIN projects p ON p.id = e.project_id
-    ${where}
-    ORDER BY e.entry_date DESC, e.id DESC
-    LIMIT ?
+    SELECT * FROM (
+      SELECT e.id, e.entry_date, e.start_at_utc, e.end_at_utc, e.duration_minutes,
+             e.calculated_duration_minutes, e.duration_override_minutes, e.status,
+             e.note, e.overlap_warning, e.deleted_at,
+             c.key as client_key, p.key as project_key, c.name as client_name, p.name as project_name
+      FROM entries e
+      JOIN clients c ON c.id = e.client_id
+      JOIN projects p ON p.id = e.project_id
+      ${where}
+      ORDER BY e.entry_date DESC, e.id DESC
+      LIMIT ?
+    ) recent
+    ORDER BY recent.entry_date ASC, recent.id ASC
   `
 
   return db.query(sql).all(...params, filters.last) as EntryRow[]

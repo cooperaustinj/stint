@@ -501,7 +501,7 @@ describe('repository entry/report (in-memory sqlite)', () => {
     expect(rows.length).toBe(1)
   })
 
-  test('queryEntries: supports last-N ordering by entry_date then id descending', () => {
+  test('queryEntries: returns latest N entries but displays oldest-to-newest', () => {
     const { db } = withDb()
     seedClientProject(db)
     insertEntry(db, {
@@ -522,9 +522,10 @@ describe('repository entry/report (in-memory sqlite)', () => {
       startAtUtc: null,
       endAtUtc: null,
     })
-    const rows = queryEntries(db, { last: 1 })
-    expect(rows.length).toBe(1)
-    expect(rows[0]?.id).toBe(second.id)
+    const rows = queryEntries(db, { last: 2 })
+    expect(rows.length).toBe(2)
+    expect(rows[0]?.note).toBe('older')
+    expect(rows[1]?.id).toBe(second.id)
   })
 
   test('queryEntries: supports date-range filtering', () => {
