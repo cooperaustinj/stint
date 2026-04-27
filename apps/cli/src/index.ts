@@ -290,6 +290,38 @@ async function main() {
     .help()
 
   cli.command(
+    '__complete <kind>',
+    false,
+    (y: any) =>
+      y
+        .positional('kind', { choices: ['clients', 'projects', 'targets'] as const })
+        .option('client', { type: 'string', describe: 'Client key filter for projects' }),
+    (argv: any) => {
+      const kind = argv.kind as 'clients' | 'projects' | 'targets'
+      if (kind === 'clients') {
+        const clients = listActiveClients(db)
+        for (const client of clients) {
+          console.log(client.key)
+        }
+        return
+      }
+
+      if (kind === 'projects') {
+        const projects = listActiveProjects(db, argv.client)
+        for (const project of projects) {
+          console.log(project.key)
+        }
+        return
+      }
+
+      const projects = listActiveProjects(db)
+      for (const project of projects) {
+        console.log(`${project.client_key}:${project.key}`)
+      }
+    },
+  )
+
+  cli.command(
     'add [target] [input] [note..]',
     'Add a time entry',
     (y: any) =>

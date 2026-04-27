@@ -209,6 +209,8 @@ stint completion zsh --install
 stint completion bash --install
 ```
 
+Fish completions include dynamic values from your local Stint data (client keys, project keys, and `client:project` targets).
+
 Install to a custom path:
 
 ```sh

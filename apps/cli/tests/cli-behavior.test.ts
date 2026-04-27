@@ -109,6 +109,24 @@ describe('CLI behavior', () => {
     expect(out.output).toContain('Invalid target format')
   })
 
+  test('completion backend returns dynamic clients/projects/targets', () => {
+    const cwd = makeTempCwd()
+    expect(runCli(['client', 'add', 'acme', 'Acme'], cwd).code).toBe(0)
+    expect(runCli(['project', 'add', 'backend', 'Backend', '--client', 'acme'], cwd).code).toBe(0)
+
+    const clients = runCli(['__complete', 'clients'], cwd)
+    expect(clients.code).toBe(0)
+    expect(clients.output).toContain('acme')
+
+    const projects = runCli(['__complete', 'projects', '--client', 'acme'], cwd)
+    expect(projects.code).toBe(0)
+    expect(projects.output).toContain('backend')
+
+    const targets = runCli(['__complete', 'targets'], cwd)
+    expect(targets.code).toBe(0)
+    expect(targets.output).toContain('acme:backend')
+  })
+
   test('report supports only-deleted filter', () => {
     const cwd = makeTempCwd()
     expect(runCli(['client', 'add', 'clientkey', 'Client Name'], cwd).code).toBe(0)

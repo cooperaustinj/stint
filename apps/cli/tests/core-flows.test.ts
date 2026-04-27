@@ -730,6 +730,8 @@ describe('migration and completion', () => {
     expect(out).toContain('complete -c stint')
     expect(out).toContain('add edit delete restore report list track client project completion migrate config')
     expect(out).toContain("__fish_seen_subcommand_from track")
+    expect(out).toContain('function __stint_clients')
+    expect(out).toContain('stint __complete targets')
   })
 
   test('completionScript: bash and zsh outputs are non-empty and command-scoped', () => {

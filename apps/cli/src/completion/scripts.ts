@@ -24,6 +24,33 @@ export function completionScript(shell: Shell): string {
       return `complete -c stint -f
 complete -c stint -n '__fish_use_subcommand' -a '${topLevel.join(' ')}'
 
+function __stint_clients
+  command stint __complete clients 2>/dev/null
+end
+
+function __stint_targets
+  command stint __complete targets 2>/dev/null
+end
+
+function __stint_projects
+  set -l client ''
+  set -l tokens (commandline -opc)
+  for i in (seq (count $tokens))
+    if test "$tokens[$i]" = '--client'
+      set -l next (math $i + 1)
+      if test $next -le (count $tokens)
+        set client $tokens[$next]
+      end
+    end
+  end
+
+  if test -n "$client"
+    command stint __complete projects --client "$client" 2>/dev/null
+  else
+    command stint __complete projects 2>/dev/null
+  end
+end
+
 complete -c stint -l help
 complete -c stint -l version
 complete -c stint -l profile -a 'development production'
@@ -35,6 +62,13 @@ complete -c stint -n '__fish_seen_subcommand_from track' -a 'start stop status'
 complete -c stint -n '__fish_seen_subcommand_from migrate' -a 'up status'
 complete -c stint -n '__fish_seen_subcommand_from config' -a 'show set-defaults reset-defaults'
 complete -c stint -n '__fish_seen_subcommand_from completion' -a 'fish bash zsh'
+
+complete -c stint -n '__fish_seen_subcommand_from add track' -a '(__stint_targets)'
+complete -c stint -n '__fish_seen_subcommand_from client' -a '(__stint_clients)'
+complete -c stint -n '__fish_seen_subcommand_from project' -a '(__stint_projects)'
+
+complete -c stint -l client -r -a '(__stint_clients)'
+complete -c stint -l project -r -a '(__stint_projects)'
 `
     case 'bash':
       return `# bash completion for stint
