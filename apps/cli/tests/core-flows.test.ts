@@ -554,6 +554,26 @@ describe('repository entry/report (in-memory sqlite)', () => {
     expect(rows[0]?.note).toBe('inside')
   })
 
+  test('queryEntries: date range is not capped by last', () => {
+    const { db } = withDb()
+    seedClientProject(db)
+    const n = 12
+    for (let i = 0; i < n; i++) {
+      insertEntry(db, {
+        entryDate: '2026-04-26',
+        durationMinutes: 1,
+        note: `e${i}`,
+        clientKey: 'client_key',
+        projectKey: 'project_key',
+        startAtUtc: null,
+        endAtUtc: null,
+      })
+    }
+    const rows = queryEntries(db, { last: 3, from: '2026-04-26', to: '2026-04-26' })
+    expect(rows.length).toBe(n)
+    expect(rows.map(r => r.note)).toEqual(Array.from({ length: n }, (_, i) => `e${i}`))
+  })
+
   test('queryEntries: supports client and project key filtering', () => {
     const { db } = withDb()
     createClient(db, 'client_key', 'Client 1')

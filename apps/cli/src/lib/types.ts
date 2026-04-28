@@ -32,4 +32,17 @@ export type StintConfig = {
   defaultClientKey?: string
   defaultProjectKey?: string
   defaultReportLast?: number
+  invoiceContractor?: {
+    name?: string
+    company?: string
+    email?: string
+    phone?: string
+    addressLine1?: string
+    addressLine2?: string
+    city?: string
+    state?: string
+    postalCode?: string
+    country?: string
+  }
+  invoiceNextNumber?: number
 }

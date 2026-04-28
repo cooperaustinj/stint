@@ -83,6 +83,71 @@ export function todayIsoLocal(): string {
   return DateTime.local().toISODate() as string
 }
 
+/** Resolve local wall-clock time for `track start --time` (same formats as `add --start`). */
+export function parseTrackStartTimeOverride(
+  timeInput: string,
+  options?: { now?: DateTime },
+): { startAtUtc: string; entryDate: string } {
+  const trimmed = timeInput.trim()
+  if (!trimmed) {
+    throw new Error('Time cannot be empty')
+  }
+
+  const now = options?.now ?? DateTime.local()
+  const anchorDate = now.toISODate()
+  if (!anchorDate) {
+    throw new Error('Could not resolve current local date')
+  }
+
+  let localStart = parseTimeOnDate(trimmed, parseDateInput(anchorDate))
+  if (localStart > now) {
+    localStart = localStart.minus({ days: 1 })
+  }
+  if (localStart > now) {
+    throw new Error('Start time cannot be in the future')
+  }
+
+  const entryDate = localStart.toISODate()
+  if (!entryDate) {
+    throw new Error('Could not resolve entry date for start time')
+  }
+
+  return {
+    startAtUtc: localStart.toUTC().toISO() as string,
+    entryDate,
+  }
+}
+
+function zonedWallClock(dt: DateTime, ianaZone: string | undefined): DateTime {
+  if (ianaZone) {
+    const zoned = dt.setZone(ianaZone)
+    if (zoned.isValid) {
+      return zoned
+    }
+  }
+  const local = dt.toLocal()
+  return local.isValid ? local : dt
+}
+
+/** Format a UTC ISO instant for CLI display in the given IANA zone (default: host system zone). */
+export function formatIsoUtcForDisplay(isoUtc: string, zone?: string): string {
+  const dt = DateTime.fromISO(isoUtc, { zone: 'utc' })
+  if (!dt.isValid) {
+    return isoUtc
+  }
+
+  const fromIntl = Intl.DateTimeFormat().resolvedOptions().timeZone
+  const explicit = typeof zone === 'string' && zone.trim() ? zone.trim() : undefined
+  const fromHost = typeof fromIntl === 'string' && fromIntl.trim() ? fromIntl.trim() : undefined
+  const iana = explicit ?? fromHost
+
+  const zoned = zonedWallClock(dt, iana)
+  if (!zoned.isValid) {
+    return isoUtc
+  }
+  return zoned.toFormat('yyyy-LL-dd h:mm a')
+}
+
 export function minutesToHuman(minutes: number): string {
   const h = Math.floor(minutes / 60)
   const m = minutes % 60

@@ -371,6 +371,10 @@ export function queryEntries(
 
   const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : ''
 
+  // When a date bound is set, return every matching row in that window; --last only applies to open-ended "recent" queries.
+  const capByLast = !filters.from && !filters.to
+  const limitClause = capByLast ? '\n      LIMIT ?' : ''
+
   const sql = `
     SELECT * FROM (
       SELECT e.id, e.entry_date, e.start_at_utc, e.end_at_utc, e.duration_minutes,
@@ -381,11 +385,12 @@ export function queryEntries(
       JOIN clients c ON c.id = e.client_id
       JOIN projects p ON p.id = e.project_id
       ${where}
-      ORDER BY e.entry_date DESC, e.id DESC
-      LIMIT ?
+      ORDER BY e.entry_date DESC, e.id DESC${limitClause}
     ) recent
     ORDER BY recent.entry_date ASC, recent.id ASC
   `
 
-  return db.query(sql).all(...params, filters.last) as EntryRow[]
+  return capByLast
+    ? (db.query(sql).all(...params, filters.last) as EntryRow[])
+    : (db.query(sql).all(...params) as EntryRow[])
 }

@@ -20,6 +20,7 @@ export function getAppliedMigrations(db: Database): Set<string> {
 export function getMigrationFiles(migrationsDir: string): string[] {
   return readdirSync(migrationsDir)
     .filter(name => name.endsWith('.sql'))
+    // oxlint-disable-next-line eslint-plugin-unicorn/no-array-sort
     .sort((a, b) => a.localeCompare(b))
 }
 

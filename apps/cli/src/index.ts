@@ -30,7 +30,13 @@ import { buildEntryInput } from './lib/entry-input'
 import { loadConfig, saveConfig } from './lib/config'
 import { resolveDataPaths } from './lib/paths'
 import { printTable } from './lib/table'
-import { minutesToHuman, parseDurationMinutes, todayIsoLocal } from './lib/time'
+import {
+  formatIsoUtcForDisplay,
+  minutesToHuman,
+  parseDurationMinutes,
+  parseTrackStartTimeOverride,
+  todayIsoLocal,
+} from './lib/time'
 import type { Shell } from './lib/types'
 
 function resolveProfileArg(): 'development' | 'production' {
@@ -187,6 +193,15 @@ async function interactiveEntryInput(
   )
 }
 
+function formatDurationForReport(minutes: number): string {
+  const hours = Math.floor(minutes / 60)
+  const remainderMinutes = minutes % 60
+  if (hours > 0) {
+    return `${hours}h ${String(remainderMinutes).padStart(2, '0')}m`
+  }
+  return `${remainderMinutes}m`
+}
+
 function printEntries(
   rows: ReturnType<typeof queryEntries>,
   options?: {
@@ -213,15 +228,6 @@ function printEntries(
   const colAligns = headers.map((_, idx) => (idx === durationColumnIndex ? 'right' : 'left')) as Array<
     'left' | 'right' | 'center'
   >
-
-  const formatDurationForReport = (minutes: number): string => {
-    const hours = Math.floor(minutes / 60)
-    const remainderMinutes = minutes % 60
-    if (hours > 0) {
-      return `${hours}h ${String(remainderMinutes).padStart(2, '0')}m`
-    }
-    return `${remainderMinutes}m`
-  }
 
   printTable(
     headers,
@@ -422,8 +428,10 @@ async function main() {
         .positional('note', { type: 'string', array: true, describe: 'Initial note for start' })
         .option('note-text', { type: 'string', describe: 'Updated note for stop (skip prompt)' })
         .option('duration-override', { type: 'string', describe: 'Override duration on stop (e.g. 1h30m)' })
+        .option('time', { type: 'string', describe: 'Actual start time for start (e.g. 9:30am); defaults to now' })
         .option('non-interactive', { type: 'boolean', default: false, describe: 'Skip prompts for stop' })
         .example('$0 track start client_key:project_key "starting work"', 'Start tracking')
+        .example('$0 track start client_key:project_key "starting work" --time 9:15am', 'Start with backfilled start time')
         .example('$0 track stop', 'Stop active tracking with interactive confirmation')
         .example('$0 track status', 'Show active tracking status'),
     async (argv: any) => {
@@ -438,7 +446,7 @@ async function main() {
           Math.round((Date.now() - new Date(active.start_at_utc).getTime()) / (1000 * 60)),
         )
         console.log(
-          `Active: ${active.client_key}:${active.project_key} | started ${active.start_at_utc} | elapsed ${minutesToHuman(elapsed)}`,
+          `Active: ${active.client_key}:${active.project_key} | started ${formatIsoUtcForDisplay(active.start_at_utc)} | elapsed ${minutesToHuman(elapsed)}`,
         )
         console.log(`Note: ${active.note}`)
         return
@@ -454,12 +462,16 @@ async function main() {
           throw new Error('track start requires an initial note')
         }
         const parsed = parseTarget(target)
+        const timeOverride = typeof argv.time === 'string' ? argv.time.trim() : ''
+        const { startAtUtc, entryDate } = timeOverride
+          ? parseTrackStartTimeOverride(timeOverride)
+          : { startAtUtc: new Date().toISOString(), entryDate: todayIsoLocal() }
         const started = startTrackingEntry(db, {
           clientKey: parsed.clientKey,
           projectKey: parsed.projectKey,
           note,
-          startAtUtc: new Date().toISOString(),
-          entryDate: todayIsoLocal(),
+          startAtUtc,
+          entryDate,
         })
         console.log(`Started tracking entry ${started.id} for ${parsed.clientKey}:${parsed.projectKey}`)
         return
@@ -605,9 +617,13 @@ async function main() {
 
   const reportBuilder = (y: any) =>
     y
-      .option('last', { type: 'number', default: config.defaultReportLast ?? 10 })
-      .option('from', { type: 'string', describe: 'From date YYYY-MM-DD' })
-      .option('to', { type: 'string', describe: 'To date YYYY-MM-DD' })
+      .option('last', {
+        type: 'number',
+        default: config.defaultReportLast ?? 10,
+        describe: 'Max rows when no --from/--to (ignored if either date bound is set)',
+      })
+      .option('from', { type: 'string', describe: 'From date YYYY-MM-DD (shows all matches in range; --last ignored)' })
+      .option('to', { type: 'string', describe: 'To date YYYY-MM-DD (shows all matches in range; --last ignored)' })
       .option('client', { type: 'string', describe: 'Filter by client key' })
       .option('project', { type: 'string', describe: 'Filter by project key' })
       .option('include-deleted', { type: 'boolean', default: false, describe: 'Include soft-deleted entries in results' })

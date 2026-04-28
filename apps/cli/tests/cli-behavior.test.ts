@@ -47,7 +47,7 @@ describe('CLI behavior', () => {
     const dbPath = join(cwd, 'isolated', 'stint-test.db')
     const out = runCli(['--db', dbPath, 'config'], cwd)
     expect(out.code).toBe(0)
-    expect(out.output).toContain(`\"dbPath\": \"${dbPath}\"`)
+    expect(out.output).toContain(`"dbPath": "${dbPath}"`)
   })
 
   test('config set-defaults requires at least one flag', () => {
@@ -107,6 +107,60 @@ describe('CLI behavior', () => {
     const out = runCli(['track', 'start', 'not-valid-target', 'note'], cwd)
     expect(out.code).toBe(1)
     expect(out.output).toContain('Invalid target format')
+  })
+
+  test('track start accepts --time override', () => {
+    const cwd = makeTempCwd()
+    expect(runCli(['client', 'add', 'clientkey', 'Client Name'], cwd).code).toBe(0)
+    expect(runCli(['project', 'add', 'projectkey', 'Project Name', '--client', 'clientkey'], cwd).code).toBe(0)
+
+    const start = runCli(['track', 'start', 'clientkey:projectkey', 'late start', '--time', '9am'], cwd)
+    expect(start.code).toBe(0)
+    expect(start.output).toContain('Started tracking entry')
+
+    const status = runCli(['track', 'status'], cwd)
+    expect(status.code).toBe(0)
+    expect(status.output).toMatch(/started \d{4}-\d{2}-\d{2} \d{1,2}:\d{2} [AP]M/)
+  })
+
+  test('track start accepts --time with note before flag', () => {
+    const cwd = makeTempCwd()
+    expect(runCli(['client', 'add', 'clientkey', 'Client Name'], cwd).code).toBe(0)
+    expect(runCli(['project', 'add', 'projectkey', 'Project Name', '--client', 'clientkey'], cwd).code).toBe(0)
+
+    const start = runCli(
+      ['track', 'start', 'clientkey:projectkey', 'Working', 'on', 'details', '--time', '9am'],
+      cwd,
+    )
+    expect(start.code).toBe(0)
+    expect(start.output).toContain('Started tracking entry')
+
+    const status = runCli(['track', 'status'], cwd)
+    expect(status.code).toBe(0)
+    expect(status.output).toContain('Note: Working on details')
+  })
+
+  test('track start accepts --time= inline form', () => {
+    const cwd = makeTempCwd()
+    expect(runCli(['client', 'add', 'clientkey', 'Client Name'], cwd).code).toBe(0)
+    expect(runCli(['project', 'add', 'projectkey', 'Project Name', '--client', 'clientkey'], cwd).code).toBe(0)
+
+    const start = runCli(['track', 'start', 'clientkey:projectkey', '--time=10:15am', 'Stage', 'two'], cwd)
+    expect(start.code).toBe(0)
+    expect(start.output).toContain('Started tracking entry')
+    const status = runCli(['track', 'status'], cwd)
+    expect(status.code).toBe(0)
+    expect(status.output).toContain('Note: Stage two')
+  })
+
+  test('track start rejects invalid --time', () => {
+    const cwd = makeTempCwd()
+    expect(runCli(['client', 'add', 'clientkey', 'Client Name'], cwd).code).toBe(0)
+    expect(runCli(['project', 'add', 'projectkey', 'Project Name', '--client', 'clientkey'], cwd).code).toBe(0)
+
+    const out = runCli(['track', 'start', 'clientkey:projectkey', 'note', '--time', 'not-a-time'], cwd)
+    expect(out.code).toBe(1)
+    expect(out.output).toContain('Could not parse time')
   })
 
   test('completion backend returns dynamic clients/projects/targets', () => {
