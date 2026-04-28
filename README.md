@@ -162,22 +162,16 @@ stint project archive backend
 
 ### Configuration
 
-Show active profile, resolved DB/config paths, and defaults:
+Show active profile, resolved DB/config paths, and config:
 
 ```sh
 stint config
 ```
 
-Set defaults:
+Contractor invoice header profile:
 
 ```sh
-stint config set-defaults --client acme --project backend --report-last 20
-```
-
-Reset defaults:
-
-```sh
-stint config reset-defaults --yes
+stint config invoice-contractor --name "Your Name" --company "Your Co" --email you@example.com
 ```
 
 ### Migrations
@@ -216,6 +210,48 @@ Install to a custom path:
 ```sh
 stint completion fish --install --path ~/.config/fish/completions/stint.fish
 ```
+
+### Invoicing
+
+Set client billing profile/rate:
+
+```sh
+stint client billing acme --hourly-rate 125 --billing-name "Acme Accounts Payable" --billing-email ap@acme.com
+```
+
+Store payment details in macOS Keychain:
+
+```sh
+stint invoice payment set --account-name "Your Name" --bank-name "Bank" --routing-number 111000111 --account-number 123456789
+```
+
+Create a draft invoice from date range + client (optional project):
+
+```sh
+stint invoice create --client acme --from 2026-04-01 --to 2026-04-30
+```
+
+Preview invoice data in terminal:
+
+```sh
+stint invoice preview @1000
+```
+
+Add and manage expenses:
+
+```sh
+stint invoice expense @1000 add --amount 25.00 --description "Hosting"
+stint invoice expense @1000 list
+stint invoice expense @1000 remove --expense-id 1
+```
+
+Generate PDF with Typst:
+
+```sh
+stint invoice generate @1000 --preview
+```
+
+Default output location is `~/Downloads` unless you pass `--out`.
 
 ## Local Development
 

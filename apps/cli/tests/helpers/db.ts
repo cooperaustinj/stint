@@ -4,17 +4,17 @@ import { openInMemoryDatabase } from '../../src/db/connection'
 import { applyPendingMigrations } from '../../src/db/migrations'
 
 export type TestDbContext = {
-  db: Database
-  close: () => void
+    db: Database
+    close: () => void
 }
 
 export function createInMemoryTestDb(): TestDbContext {
-  const db = openInMemoryDatabase()
-  const migrationsDir = join(import.meta.dir, '..', '..', 'migrations')
-  applyPendingMigrations(db, migrationsDir)
+    const db = openInMemoryDatabase()
+    const migrationsDir = join(import.meta.dir, '..', '..', 'migrations')
+    applyPendingMigrations(db, migrationsDir)
 
-  return {
-    db,
-    close: () => db.close(),
-  }
+    return {
+        db,
+        close: () => db.close(),
+    }
 }

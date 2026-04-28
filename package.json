@@ -10,6 +10,7 @@
     "build": "turbo run build",
     "lint": "turbo run lint",
     "lint:fix": "turbo run lint:fix",
+    "format:write": "oxfmt . && turbo run format:write",
     "format": "oxfmt . && turbo run format",
     "format:check": "oxfmt --check . && turbo run format:check",
     "check-types": "turbo run check-types",

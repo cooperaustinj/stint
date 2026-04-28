@@ -3,7 +3,7 @@ import { readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 function ensureMigrationsTable(db: Database): void {
-  db.run(`
+    db.run(`
     CREATE TABLE IF NOT EXISTS schema_migrations (
       version TEXT PRIMARY KEY,
       applied_at TEXT NOT NULL
@@ -12,35 +12,40 @@ function ensureMigrationsTable(db: Database): void {
 }
 
 export function getAppliedMigrations(db: Database): Set<string> {
-  ensureMigrationsTable(db)
-  const rows = db.query('SELECT version FROM schema_migrations').all() as Array<{ version: string }>
-  return new Set(rows.map(row => row.version))
+    ensureMigrationsTable(db)
+    const rows = db.query('SELECT version FROM schema_migrations').all() as Array<{ version: string }>
+    return new Set(rows.map(row => row.version))
 }
 
 export function getMigrationFiles(migrationsDir: string): string[] {
-  return readdirSync(migrationsDir)
-    .filter(name => name.endsWith('.sql'))
-    // oxlint-disable-next-line eslint-plugin-unicorn/no-array-sort
-    .sort((a, b) => a.localeCompare(b))
+    return (
+        readdirSync(migrationsDir)
+            .filter(name => name.endsWith('.sql'))
+            // oxlint-disable-next-line eslint-plugin-unicorn/no-array-sort
+            .sort((a, b) => a.localeCompare(b))
+    )
 }
 
 export function applyPendingMigrations(db: Database, migrationsDir: string): string[] {
-  const applied = getAppliedMigrations(db)
-  const files = getMigrationFiles(migrationsDir)
-  const appliedNow: string[] = []
+    const applied = getAppliedMigrations(db)
+    const files = getMigrationFiles(migrationsDir)
+    const appliedNow: string[] = []
 
-  for (const file of files) {
-    if (applied.has(file)) {
-      continue
+    for (const file of files) {
+        if (applied.has(file)) {
+            continue
+        }
+
+        const sql = readFileSync(join(migrationsDir, file), 'utf8')
+        db.transaction(() => {
+            db.run(sql)
+            db.query('INSERT INTO schema_migrations (version, applied_at) VALUES (?, ?)').run(
+                file,
+                new Date().toISOString(),
+            )
+        })()
+        appliedNow.push(file)
     }
 
-    const sql = readFileSync(join(migrationsDir, file), 'utf8')
-    db.transaction(() => {
-      db.run(sql)
-      db.query('INSERT INTO schema_migrations (version, applied_at) VALUES (?, ?)').run(file, new Date().toISOString())
-    })()
-    appliedNow.push(file)
-  }
-
-  return appliedNow
+    return appliedNow
 }
